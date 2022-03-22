@@ -7,6 +7,7 @@ import os
 import gc
 import time
 import csv
+import json
 import argparse
 # pip install nltk
 import nltk
@@ -42,12 +43,11 @@ def load_csv(csv_path):
     return tpls
 
 def main(args):
-    import json
-    # searching
-    # with open("/app/additional_data/tpl_list.json", "r") as fp:
-    #     libs = json.load(fp)
+    filtered_lib_indexes_file = args.filter_file
+    with open(filtered_lib_indexes_file, "r") as fp:
+        pickup_indexes = json.load(fp)
+    pickup_indexes = set([int(idx) for idx in pickup_indexes])
 
-    # result_output = "/app/search_result_ours/"
     result_output = args.so_out_dir
     if args.end < args.start:
         raise Exception("Error input arguments: End is larger than Start")
@@ -63,9 +63,11 @@ def main(args):
         package_parts_string = " ".join([part for part in package[1:].split("/") if part not in ["com", "org", "net"]])
         if lib != "Unknown":
             package_parts_string = package_parts_string + " " + lib
-        print(f"{package} {lib}: query {package_parts_string}")
-
         lib_i = lib_i + args.start
+        print(f"{lib_i}. {package} {lib}: query {package_parts_string}")
+
+        if lib_i not in pickup_indexes:
+            continue
         if os.path.exists(f"{result_output}/{lib_i}.json"):
             print(f"{result_output}/{lib_i}.json is available" )
             continue
@@ -93,6 +95,8 @@ if __name__ == "__main__":
     parser.add_argument("--tpl_csv_dir", default=None, type=str, required=True,
                         help="Location of file tpl_index.csv")      
     parser.add_argument("--so_out_dir", default=None, type=str, required=True,
-                        help="Directory for storing thread IDs for each TPL" )   
+                        help="Directory for storing thread IDs for each TPL" )
+    parser.add_argument("--filter_file", default=None, type=str, required=True,
+                        help="Location of file filtered_tpl_index.json")   
     args = parser.parse_args()
     main(args)
