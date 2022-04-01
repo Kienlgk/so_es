@@ -7,7 +7,6 @@ import os
 import gc
 import time
 import csv
-import json
 import argparse
 # pip install nltk
 import nltk
@@ -20,9 +19,7 @@ from multiprocessing import Pool
 from pprint import pformat
 
 import sys
-
-sys.path.append(os.sep.join(sys.path[0].split(os.sep)[:-1]))
-print(sys.path)
+sys.path.append("/app/scripts/")
 from utils.es_client import ESClient
 from config.config import config
 
@@ -43,6 +40,12 @@ def load_csv(csv_path):
     return tpls
 
 def main(args):
+    import json
+    # searching
+    # with open("/app/additional_data/tpl_list.json", "r") as fp:
+    #     libs = json.load(fp)
+
+    # result_output = "/app/search_result_ours/"
     filtered_lib_indexes_file = args.filter_file
     with open(filtered_lib_indexes_file, "r") as fp:
         pickup_indexes = json.load(fp)
@@ -73,15 +76,20 @@ def main(args):
             continue
         query = remove_stop_word_from_query(package_parts_string)
         # print(query)
-        thread_results, results_len = es_client.query(index_name=INDEX_NAME, search_string=query, op="or", field="search")
+        thread_results, results_len, is_err = es_client.query(index_name=INDEX_NAME, search_string=query, op="or", field="search")
 
         predicted_ids = []
         for res in thread_results:
             if res['_id'] not in predicted_ids:
                 predicted_ids.append(res['_id'])
         os.makedirs(f"{result_output}/", exist_ok=True)
-        with open(f"{result_output}/{lib_i}.json", "w+") as fp:
-            json.dump(predicted_ids, fp, indent=2)
+        if not is_err:
+            with open(f"{result_output}/{lib_i}.json", "w+") as fp:
+                json.dump(predicted_ids, fp, indent=2)
+        else:
+            with open(f"{result_output}/{lib_i}_err.txt", "w+") as fp:
+                pass
+                # json.dump(predicted_ids, fp, indent=2)
         time.sleep(0.2)
     
 
